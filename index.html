@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>菲菲朕天下專屬｜賽特爆分機率房</title>
+
+<style>
+body{
+    font-family:"Microsoft JhengHei",Arial,sans-serif;
+    margin:0;
+    padding:14px 10px 40px;
+    color:#fff;
+    display:flex;
+    justify-content:center;
+    min-height:100vh;
+    background:center/cover fixed no-repeat;
+    animation:bgHeartbeat 10s ease-in-out infinite;
+    overflow-x:hidden;
+}
+
+@keyframes bgHeartbeat{
+    0%,100%{ background-size:100%; }
+    50%{ background-size:105%; }
+}
+
+/* 粒子 */
+#particles{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:-2;
+    background: radial-gradient(circle at center, rgba(255,182,193,0.18), transparent 70%);
+}
+.particle{
+    position:absolute;
+    border-radius:50%;
+    background: rgba(255,255,255,0.7);
+    animation: floatParticle linear infinite;
+}
+@keyframes floatParticle{
+    from{ transform: translateY(0); opacity:.6;}
+    to{ transform: translateY(-120vh); opacity:0;}
+}
+
+.container{
+    width:100%;
+    max-width:420px;
+    text-align:center;
+}
+
+h1{
+    font-size:20px;
+    line-height:1.4;
+    color:#ff69b4;
+    text-shadow:0 0 18px rgba(255,105,180,.9);
+    margin-bottom:16px;
+}
+
+/* 單一按鈕 */
+button{
+    width:100%;
+    margin:10px 0 18px;
+    padding:16px;
+    font-size:18px;
+    font-weight:bold;
+    border:none;
+    border-radius:20px;
+    cursor:pointer;
+    color:#fff;
+    background: linear-gradient(
+        to bottom,
+        rgba(255,182,193,0.95),
+        rgba(255,105,180,0.95)
+    );
+    box-shadow:
+        0 6px 18px rgba(0,0,0,.55),
+        inset 0 -2px 6px rgba(255,255,255,.4);
+    animation: heartBeat 1.6s ease-in-out infinite;
+}
+
+@keyframes heartBeat{
+    50%{ transform:scale(1.08); }
+}
+
+/* 房間 */
+.slot-container{
+    display:grid;
+    grid-template-columns:1fr;
+    gap:12px;
+}
+
+.slot{
+    background:rgba(15,15,15,.92);
+    border-radius:14px;
+    padding:14px;
+    display:flex;
+    justify-content:space-between;
+    font-size:16px;
+}
+
+/* 最大獎 */
+.highest{
+    border:2px solid #ff85c0;
+    color:#ff85c0;
+    box-shadow:0 0 40px rgba(255,133,192,1);
+}
+
+/* 次高 */
+.high{
+    border:2px solid #fff;
+    color:#fff;
+    box-shadow:0 0 16px rgba(255,255,255,.6);
+}
+</style>
+</head>
+
+<body>
+<div id="particles"></div>
+
+<div class="container">
+<h1 id="title">菲菲朕天下專屬｜賽特II爆分機率房</h1>
+
+<button onclick="toggleVersion()">切換版本</button>
+
+<div id="slots" class="slot-container"></div>
+</div>
+
+<script>
+/* 固定資料（不會重新算） */
+const data = [
+ {r:1288,p:89,t:"highest"},
+ {r:2256,p:87,t:"highest"},
+ {r:301,p:86,t:"highest"},
+ {r:1777,p:82,t:"high"},
+ {r:2640,p:79,t:"high"},
+ {r:988,p:76,t:"high"},
+ {r:451,p:72,t:""},
+ {r:1920,p:68,t:""},
+ {r:339,p:65,t:""}
+];
+
+const slots=document.getElementById("slots");
+const title=document.getElementById("title");
+
+let version="II";
+
+/* 顯示資料（只跑一次） */
+data.forEach(d=>{
+ const div=document.createElement("div");
+ div.className="slot "+d.t;
+ div.innerHTML=`<span>第 ${d.r} 房</span><span>${d.p}%</span>`;
+ slots.appendChild(div);
+});
+
+/* 切換版本（不刷新資料） */
+function toggleVersion(){
+ version = version==="II" ? "I" : "II";
+ title.innerText=`菲菲朕天下專屬｜賽特${version}爆分機率房`;
+ document.body.style.backgroundImage =
+   version==="II" ? 'url("bg2.jpg")' : 'url("bg1.jpg")';
+}
+
+/* 粒子 */
+const pDiv=document.getElementById("particles");
+for(let i=0;i<60;i++){
+ const p=document.createElement("div");
+ p.className="particle";
+ p.style.left=Math.random()*100+"%";
+ p.style.bottom=Math.random()*100+"%";
+ p.style.width=p.style.height=2+Math.random()*6+"px";
+ p.style.animationDuration=5+Math.random()*8+"s";
+ pDiv.appendChild(p);
+}
+
+/* 初始背景 */
+document.body.style.backgroundImage='url("bg2.jpg")';
+</script>
+</body>
+</html>
