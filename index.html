@@ -3,204 +3,295 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>菲菲朕天下專屬｜賽特爆分機率房</title>
+<title>♥ 菲菲朕天下專屬 ♥ 賽特II爆分機率房</title>
 
 <style>
+/* ================== 基本設定 ================== */
 body{
     font-family:"Microsoft JhengHei",Arial,sans-serif;
     margin:0;
-    padding:14px 10px 40px;
+    padding:12px;
     color:#fff;
     display:flex;
     justify-content:center;
     min-height:100vh;
-    background:#000;
+    position:relative;
     overflow:hidden;
+    background:#000;
 }
 
-#heartCanvas{
+/* ===== 背景淡入層（關鍵修復） ===== */
+body::before{
+    content:"";
     position:fixed;
     inset:0;
+    background: var(--fade-bg) center/cover no-repeat;
+    opacity:0;
+    transition:opacity .8s ease;
+    z-index:-1;
+    animation:bgHeartbeat 10s ease-in-out infinite;
+}
+body.bg-fade::before{ opacity:1; }
+
+@keyframes bgHeartbeat{
+    0%,100%{ background-size:100%; }
+    50%{ background-size:105%; }
+}
+
+/* ================== 粒子 ================== */
+#particles{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
     z-index:-2;
 }
-
-.container{
-    width:100%;
-    max-width:420px;
-    text-align:center;
-    position:relative;
-    z-index:2;
+.particle{
+    position:absolute;
+    width:6px;
+    height:6px;
+    border-radius:50%;
+    background:rgba(255,255,255,.6);
+    animation:floatParticle linear infinite;
 }
+@keyframes floatParticle{
+    from{transform:translateY(0);opacity:.6}
+    to{transform:translateY(-120vh);opacity:0}
+}
+
+/* ================== 版面 ================== */
+.container{max-width:1000px;width:100%;text-align:center}
 
 h1{
-    font-size:20px;
-    line-height:1.4;
-    margin-bottom:16px;
-    text-shadow:0 0 18px currentColor;
+    color:#ff69b4;
+    text-shadow:0 0 16px rgba(255,105,180,.8);
 }
 
-/* 按鈕（顏色由 JS 控制） */
+.buttons{margin:15px 0}
+
 button{
-    width:100%;
-    margin:10px 0 18px;
-    padding:16px;
-    font-size:18px;
-    font-weight:bold;
+    width:200px;
+    margin:6px;
+    padding:12px;
+    font-size:16px;
     border:none;
-    border-radius:20px;
+    border-radius:16px;
     cursor:pointer;
     color:#fff;
-    box-shadow:
-        0 6px 18px rgba(0,0,0,.55),
-        inset 0 -2px 6px rgba(255,255,255,.4);
-    animation: heartBeat 1.6s ease-in-out infinite;
+    background:linear-gradient(#ffb6c1,#ff69b4);
 }
+button:disabled{opacity:.6;cursor:not-allowed}
 
-@keyframes heartBeat{
-    50%{ transform:scale(1.08); }
-}
+.loading{color:#ff5555;font-size:22px}
+.success{color:#ff69b4;font-size:20px;margin-bottom:10px}
 
+/* ================== 房間 ================== */
 .slot-container{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:12px;
+    display:none;
+    grid-template-columns:repeat(3,1fr);
+    gap:14px;
 }
-
 .slot{
-    background:rgba(15,15,15,.92);
-    border-radius:14px;
+    background:rgba(15,15,15,.9);
+    border-radius:12px;
     padding:14px;
     display:flex;
     justify-content:space-between;
-    font-size:16px;
+    opacity:0;
+    transform:translateY(20px);
+    transition:.4s;
 }
+.slot.show{opacity:1;transform:none}
 
 .highest{
-    border:2px solid currentColor;
-    color:currentColor;
-    box-shadow:0 0 40px currentColor;
+    border:2px solid #ff85c0;
+    box-shadow:0 0 40px rgba(255,133,192,1);
 }
-
 .high{
     border:2px solid #fff;
-    color:#fff;
-    box-shadow:0 0 16px rgba(255,255,255,.6);
+    box-shadow:0 0 15px rgba(255,255,255,.6);
+}
+
+/* ================== 進度條 ================== */
+#progressContainer{
+    width:80%;
+    height:16px;
+    background:rgba(255,255,255,.2);
+    border-radius:12px;
+    margin:12px auto;
+    display:none;
+}
+#progressBar{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,#ff9cd8,#ff69b4);
 }
 </style>
 </head>
 
 <body>
-<canvas id="heartCanvas"></canvas>
+<div id="particles"></div>
 
 <div class="container">
-<h1 id="title">♥ 菲菲朕天下專屬 ♥｜賽特II爆分機率房</h1>
+<h1 id="mainTitle">♥ 菲菲朕天下專屬 ♥ 賽特II爆分機率房</h1>
 
-<button id="toggleBtn" onclick="toggleVersion()">切換版本</button>
+<div class="buttons">
+    <button id="countBtn" onclick="handleRefreshClick()">五分鐘換一次 ♥</button>
+    <button onclick="toggleVer()">幫你換版本</button>
+</div>
 
+<div id="loading" class="loading">爆分機率計算中… ♥ 0%</div>
+<div id="success" class="success" style="display:none;">爆分機率計算完成 ♥</div>
+<div id="progressContainer"><div id="progressBar"></div></div>
 <div id="slots" class="slot-container"></div>
 </div>
 
 <script>
-/* ===== Canvas 愛心 ===== */
-const canvas=document.getElementById("heartCanvas");
-const ctx=canvas.getContext("2d");
-let hearts=[];
-let mainColor="#ff69b4";
+/* ================== 不重複核心引擎 ================== */
+let recentRooms = new Set();
+let refreshCount = 0;
 
-function resize(){
- canvas.width=innerWidth;
- canvas.height=innerHeight;
+function randRoom(){
+    let r,s=0;
+    do{
+        r=Math.floor(Math.random()*3000)+1;
+        s++; if(s>10000) break;
+    }while(recentRooms.has(r));
+    return r;
 }
-resize();
-addEventListener("resize",resize);
+/* =================================================== */
 
-function spawnHeart(){
- hearts.push({
-   x:Math.random()*canvas.width,
-   y:canvas.height+30,
-   speed:2+Math.random()*2,
-   alpha:.4+Math.random()*.6
- });
-}
-
-function draw(){
- ctx.fillStyle="rgba(0,0,0,0.28)";
- ctx.fillRect(0,0,canvas.width,canvas.height);
-
- ctx.font="22px monospace";
- hearts.forEach(h=>{
-   ctx.globalAlpha=h.alpha;
-   ctx.fillStyle=mainColor;
-   ctx.fillText("♥",h.x,h.y);
-   h.y-=h.speed;
- });
- ctx.globalAlpha=1;
-
- hearts=hearts.filter(h=>h.y>-60);
- if(Math.random()>0.45) spawnHeart();
-
- requestAnimationFrame(draw);
-}
-draw();
-
-function resetHearts(){
- hearts=[];
- for(let i=0;i<30;i++) spawnHeart();
-}
-
-/* ===== 資料 ===== */
-const data=[
- {r:1288,p:89,t:"highest"},
- {r:2256,p:87,t:"highest"},
- {r:301,p:86,t:"highest"},
- {r:1777,p:82,t:"high"},
- {r:2640,p:79,t:"high"},
- {r:988,p:76,t:"high"},
- {r:451,p:72,t:""},
- {r:1920,p:68,t:""},
- {r:339,p:65,t:""}
-];
-
-const slots=document.getElementById("slots");
-const title=document.getElementById("title");
-const btn=document.getElementById("toggleBtn");
-
-data.forEach(d=>{
- const div=document.createElement("div");
- div.className="slot "+d.t;
- div.innerHTML=`<span>第 ${d.r} 房</span><span>${d.p}%</span>`;
- slots.appendChild(div);
-});
-
-/* ===== 版本控制 ===== */
 let version="II";
+let cooldownSeconds=300;
+let isCooling=false;
+let cooldownTimer=null;
 
-function applyTheme(){
- title.innerText=`♥ 菲菲朕天下專屬 ♥｜賽特${version}爆分機率房`;
- title.style.color=mainColor;
+function shuffle(a){return a.sort(()=>Math.random()-.5);}
 
- btn.style.background =
-   version==="II"
-   ? "linear-gradient(to bottom,#ffb6c1,#ff69b4)"
-   : "linear-gradient(to bottom,#d9b3ff,#b96bff)";
-
- document.querySelectorAll(".highest").forEach(el=>{
-   el.style.color=mainColor;
-   el.style.borderColor=mainColor;
-   el.style.boxShadow=`0 0 40px ${mainColor}`;
- });
+/* ===== 背景切換 ===== */
+function changeBackground(img){
+    document.body.style.setProperty("--fade-bg",`url("${img}")`);
+    document.body.classList.add("bg-fade");
+    setTimeout(()=>document.body.classList.remove("bg-fade"),800);
 }
 
-function toggleVersion(){
- version=version==="II"?"I":"II";
- mainColor=version==="II"?"#ff69b4":"#c77dff";
- applyTheme();
- resetHearts();
+/* ===== 粒子 ===== */
+function createParticles(count=50){
+    const box=document.getElementById("particles");
+    for(let i=0;i<count;i++){
+        const p=document.createElement("div");
+        p.className="particle";
+        p.style.left=Math.random()*100+"%";
+        p.style.bottom=Math.random()*100+"%";
+        p.style.animationDuration=5+Math.random()*10+"s";
+        box.appendChild(p);
+    }
 }
 
-/* 初始化 */
-applyTheme();
-resetHearts();
+/* ===== 資料生成 ===== */
+function generateData(){
+    let arr=[];
+    let used=new Set();
+
+    function getRoom(){
+        let r,s=0;
+        do{
+            r=randRoom();
+            s++; if(s>10000) break;
+        }while(used.has(r));
+        used.add(r);
+        return r;
+    }
+
+    for(let i=0;i<3;i++)
+        arr.push({room:getRoom(),rate:85+Math.random()*5|0,type:"highest"});
+
+    for(let i=0;i<7;i++)
+        arr.push({room:getRoom(),rate:75+Math.random()*10|0,type:"high"});
+
+    while(arr.length<30)
+        arr.push({room:getRoom(),rate:50+Math.random()*25|0,type:""});
+
+    arr.forEach(d=>recentRooms.add(d.room));
+    refreshCount++;
+    if(refreshCount>=3){recentRooms.clear();refreshCount=0;}
+
+    return [...arr.slice(0,3),...shuffle(arr.slice(3))];
+}
+
+/* ===== 顯示 ===== */
+function generate(){
+    slots.innerHTML="";
+    slots.style.display="grid";
+
+    const data=generateData();
+    let done=0;
+
+    progressContainer.style.display="block";
+    progressBar.style.width="0%";
+    loading.style.display="block";
+    success.style.display="none";
+
+    data.forEach((d,i)=>{
+        const div=document.createElement("div");
+        div.className="slot "+d.type;
+        div.innerHTML=`<span>第 ${d.room} 房</span><span>${d.rate}%</span>`;
+        slots.appendChild(div);
+
+        setTimeout(()=>{
+            div.classList.add("show");
+            done++;
+            const p=done/data.length*100|0;
+            loading.innerText=`爆分機率計算中… ♥ ${p}%`;
+            progressBar.style.width=p+"%";
+
+            if(done===data.length){
+                loading.style.display="none";
+                success.style.display="block";
+                progressContainer.style.display="none";
+            }
+        },i*50);
+    });
+}
+
+/* ===== 操作 ===== */
+function handleRefreshClick(){
+    if(isCooling) return;
+    generate();
+    startCooldown();
+}
+
+function startCooldown(){
+    let remain=cooldownSeconds;
+    isCooling=true;
+    countBtn.disabled=true;
+
+    cooldownTimer=setInterval(()=>{
+        remain--;
+        countBtn.innerText=`♥ ${String(remain/60|0).padStart(2,"0")}:${String(remain%60).padStart(2,"0")} ♥`;
+        if(remain<=0){
+            clearInterval(cooldownTimer);
+            isCooling=false;
+            countBtn.disabled=false;
+            countBtn.innerText="五分鐘換一次 ♥";
+        }
+    },1000);
+}
+
+function toggleVer(){
+    version=version==="II"?"I":"II";
+    mainTitle.innerText=`♥ 菲菲朕天下專屬 ♥ 賽特${version}爆分機率房`;
+    recentRooms.clear();
+    refreshCount=0;
+    changeBackground(version==="II"?"bg2.jpg":"bg1.jpg");
+    generate();
+}
+
+/* ===== 啟動 ===== */
+window.onload=()=>{
+    changeBackground("bg2.jpg");
+    createParticles(60);
+    generate();
+};
 </script>
 </body>
 </html>
